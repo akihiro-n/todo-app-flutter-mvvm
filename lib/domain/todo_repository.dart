@@ -1,29 +1,45 @@
 import 'dart:convert';
 import 'dart:math';
 
+import 'package:rxdart/rxdart.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:todo_mvvm_sample/create_todo.dart';
-import 'package:todo_mvvm_sample/todo.dart';
+import 'package:todo_mvvm_sample/domain/create_todo.dart';
+import 'package:todo_mvvm_sample/domain/todo.dart';
 
 class TodoRepository {
-  TodoRepository(
-    this.preference,
-  );
+  TodoRepository({required this.preference}) {
+    _update();
+  }
 
   Future<SharedPreferences> preference;
   static const PREFERENCE_KEY_TODO = "PREFERENCE_KEY_TODO";
   static const PREFERENCE_KEY_COMPLETE_TODO_ID =
       "PREFERENCE_KEY_COMPLETE_TODO_ID";
 
+  BehaviorSubject<List<Todo>> _todoList = BehaviorSubject.seeded(List.empty());
+
+  Stream<List<Todo>> get todoList => _todoList.asBroadcastStream();
+
+  BehaviorSubject<List<int>> _completeIdList =
+      BehaviorSubject.seeded(List.empty());
+
+  Stream<List<int>> get completeIdList => _completeIdList.asBroadcastStream();
+
+  void _update() async {
+    _todoList.value = await getAll();
+    _completeIdList.value = await getCompleteIdList();
+  }
+
   Future complete(int id) async {
-    return (await preference).setStringList(PREFERENCE_KEY_COMPLETE_TODO_ID, [
+    (await preference).setStringList(PREFERENCE_KEY_COMPLETE_TODO_ID, [
       ...(await getCompleteIdList()).map((e) => e.toString()).toList(),
       id.toString(),
     ]);
+    return _update();
   }
 
   Future notComplete(int id) async {
-    return (await preference).setStringList(
+    (await preference).setStringList(
       PREFERENCE_KEY_COMPLETE_TODO_ID,
       (await getCompleteIdList())
           .where(
@@ -34,6 +50,7 @@ class TodoRepository {
           )
           .toList(),
     );
+    return _update();
   }
 
   Future<List<int>> getCompleteIdList() async {
@@ -80,9 +97,10 @@ class TodoRepository {
       todoJson,
     ];
 
-    return (await preference).setStringList(
+    (await preference).setStringList(
       PREFERENCE_KEY_TODO,
       todoJsonList,
     );
+    return _update();
   }
 }

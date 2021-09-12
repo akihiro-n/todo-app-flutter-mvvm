@@ -8,6 +8,6 @@ final preferenceProvider = Provider(
 
 final todoRepositoryProvider = Provider(
   (refs) => TodoRepository(
-    refs.read(preferenceProvider),
+    preference: refs.read(preferenceProvider),
   ),
 );
